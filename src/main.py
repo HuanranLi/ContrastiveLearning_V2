@@ -1,4 +1,4 @@
-from data_module import *
+from data_CIFAR10 import *
 from model_SimCLR import *
 import argparse
 import torch
@@ -8,6 +8,8 @@ from lightning.pytorch.loggers import MLFlowLogger
 import mlflow
 
 def main(args):
+    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = f'run_{args.run_index}', save_dir = '../logs')
+    mlf_logger.log_hyperparams(args)
 
     if args.train_transform == 'SimCLR':
         train_transform = SimCLRTransform(input_size=args.input_size)
@@ -36,9 +38,6 @@ def main(args):
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
-
-    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, save_dir = '../logs')
-
     trainer = pl.Trainer(max_epochs=args.max_epochs,
                             devices=args.devices,
                             accelerator=args.accelerator,
@@ -49,6 +48,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script for CIFAR10 using PyTorch Lightning")
 
     parser.add_argument('--experiment_name', type=str, default='experiment_name', help='Name of the experiment.')
+    parser.add_argument('--run_index', type=int, default=0, help='Index of the run within the experiment.')
     parser.add_argument('--input_size', type=int, default=128, help='Input size of the images')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training')
     parser.add_argument('--num_workers', type=int, default=8, help='Number of workers for data loading')

@@ -35,7 +35,7 @@ class SimCLRModel(pl.LightningModule):
         z0 = self.forward(x0)
         z1 = self.forward(x1)
         loss = self.criterion(z0, z1)
-        self.log("train_loss_ssl", loss)
+        self.log("train_loss", loss)
         return loss
 
     def configure_optimizers(self):
