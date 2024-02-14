@@ -16,13 +16,14 @@ import lightly.data as data
 class CIFAR10DataModule(pl.LightningDataModule):
     def __init__(self, input_size, batch_size, num_workers, train_transform, torch_train_dataset, torch_test_dataset, val_split=0.2):
         super().__init__()
+        # parameter
         self.input_size = input_size
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_split = val_split
 
+        # Data Transform
         self.train_transform = train_transform
-
         self.test_transform = torchvision.transforms.Compose(
             [
                 torchvision.transforms.Resize((input_size, input_size)),
@@ -34,12 +35,15 @@ class CIFAR10DataModule(pl.LightningDataModule):
             ]
         )
 
+        # Pytorch Dataset
         self.cifar10_train_torch = torch_train_dataset
         self.cifar10_test_torch = torch_test_dataset
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
             full_train_dataset = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.train_transform)
+
+            # Train-Val Split
             train_size = int((1 - self.val_split) * len(full_train_dataset))
             val_size = len(full_train_dataset) - train_size
             self.cifar10_train, self.cifar10_val = random_split(full_train_dataset, [train_size, val_size])

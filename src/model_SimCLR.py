@@ -17,28 +17,31 @@ class SimCLRModel(pl.LightningModule):
     def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes):
         super().__init__()
 
+        # Parameters
         self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.feature_dim = feature_dim
         self.feature_bank_size = feature_bank_size
         self.num_classes = num_classes
-        # Use kNN for predictions
-        self.knn_k = 50  # Example value, adjust as necessary
-        self.knn_t = 1  # Example value, adjust as necessary
+        self.knn_k = 50
+        self.knn_t = 1
+
+        # Enable printing out sizes of each input/output
+        self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
 
         # Initialize feature bank and labels
         self.register_buffer("feature_bank", torch.randn(feature_bank_size, feature_dim))
         self.register_buffer("feature_labels", torch.randint(0, num_classes, (feature_bank_size,)))
         self.feature_bank_ptr = 0
 
+        # Backbone model
         resnet = torchvision.models.resnet18()
         self.backbone = nn.Sequential(*list(resnet.children())[:-1])
 
+        # Projection Head
         hidden_dim = resnet.fc.in_features
         self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
         self.criterion = NTXentLoss()
-
-        self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
 
     def forward(self, x):
         h = self.backbone(x).flatten(start_dim=1)
@@ -46,15 +49,18 @@ class SimCLRModel(pl.LightningModule):
         return z
 
     def training_step(self, batch, batch_idx):
+        # Forward Pass
         (x0, x1), labels, _ = batch
         z0 = self.forward(x0)
         z1 = self.forward(x1)
-
-        # Update feature bank and labels
-        self._update_feature_bank(z0, z1)
-
         loss = self.criterion(z0, z1)
         self.log("train_loss", loss, batch_size=self.batch_size)
+
+        # Update feature bank and labels
+        batch_features = torch.cat([z0, z1], dim=0)
+        batch_labels = torch.cat([labels, labels], dim=0)
+        self._update_feature_bank(batch_features, batch_labels)
+
         return loss
 
     def _update_feature_bank(self, features, labels):
@@ -88,11 +94,24 @@ class SimCLRModel(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        (x0, x1), _, _ = batch
+        # Forward pass
+        (x0, x1), labels, _ = batch
         z0 = self.forward(x0)
         z1 = self.forward(x1)
         loss = self.criterion(z0, z1)
         self.log("eval_loss", loss, batch_size=self.batch_size)
+
+        # KNN
+        batch_features = torch.cat([z0, z1], dim=0)
+        batch_labels = torch.cat([labels, labels], dim=0)
+        pred_labels = knn_predict(batch_features, self.feature_bank, self.feature_labels, self.num_classes, self.knn_k, self.knn_t)
+
+        # Calculate accuracy
+        correct = (pred_labels == batch_labels).sum().item()
+        total = labels.size(0)
+        accuracy = correct / total
+        self.log(f"eval_{self.knn_k}-NN_accuracy", accuracy, batch_size=self.batch_size)
+
         return loss
 
     def configure_optimizers(self):

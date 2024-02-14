@@ -42,7 +42,7 @@ def main(args):
         model = SimCLRModel(max_epochs=args.max_epochs,
                             batch_size=args.batch_size,
                             feature_dim = 128,
-                            feature_bank_size = args.batch_size * 10,
+                            feature_bank_size = args.batch_size * 100,
                             num_classes = num_classes)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
