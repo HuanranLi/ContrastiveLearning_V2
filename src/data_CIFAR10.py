@@ -11,6 +11,7 @@ from lightly.transforms import SimCLRTransform
 from lightly.transforms.utils import IMAGENET_NORMALIZE
 import lightly
 import lightly.data as data
+from torch.utils.data import random_split
 
 # CIFAR10 Data Module
 class CIFAR10DataModule(pl.LightningDataModule):
@@ -34,11 +35,16 @@ class CIFAR10DataModule(pl.LightningDataModule):
         )
 
         self.cifar10_train_torch = torch_train_dataset
+        self.cifar10_train_torch, self.cifar10_eval_torch = random_split(
+            self.cifar10_train_torch, [len(self.cifar10_train_torch) - len(self.cifar10_train_torch) // 10,
+                                        len(self.cifar10_train_torch) // 10], generator=torch.Generator().manual_seed(42)
+        )
         self.cifar10_test_torch = torch_test_dataset
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
             self.cifar10_train = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.train_transform)
+            self.cifar10_eval = data.LightlyDataset.from_torch_dataset(self.cifar10_eval_torch, transform = self.train_transform)
 
         if stage == 'test' or stage is None:
             self.cifar10_test = data.LightlyDataset.from_torch_dataset(self.cifar10_test_torch, transform = self.test_transform)
@@ -47,6 +53,15 @@ class CIFAR10DataModule(pl.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             self.cifar10_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=self.num_workers,
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.cifar10_eval,
             batch_size=self.batch_size,
             shuffle=True,
             drop_last=True,
