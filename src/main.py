@@ -4,8 +4,11 @@ import argparse
 import torch
 import torchvision
 import pytorch_lightning as pl
-from lightning.pytorch.loggers import MLFlowLogger
+from pytorch_lightning.loggers import MLFlowLogger
 import mlflow
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+
 
 def main(args):
     # Logging the hyperparams
@@ -41,17 +44,22 @@ def main(args):
     if args.model == 'SimCLR':
         model = SimCLRModel(max_epochs=args.max_epochs,
                             batch_size=args.batch_size,
-                            feature_dim = 128,
+                            feature_dim = args.feature_size,
                             feature_bank_size = args.batch_size * 100,
                             num_classes = num_classes)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
+
+    # Init ModelCheckpoint callback, monitoring 'val_loss'
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
+
     # Training
     trainer = pl.Trainer(max_epochs=args.max_epochs,
                             devices=args.devices,
                             accelerator=args.accelerator,
-                            logger=mlf_logger)
+                            logger=mlf_logger,
+                            callbacks=[checkpoint_callback])
     trainer.fit(model, data_module)
     trainer.test(ckpt_path='best',datamodule = data_module)
 
@@ -61,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('--experiment_name', type=str, default='experiment_name', help='Name of the experiment.')
     parser.add_argument('--run_index', type=int, default=0, help='Index of the run within the experiment.')
     parser.add_argument('--input_size', type=int, default=128, help='Input size of the images')
+    parser.add_argument('--feature_size', type=int, default=128, help='Output size of the encoder')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training')
     parser.add_argument('--num_workers', type=int, default=8, help='Number of workers for data loading')
     parser.add_argument('--max_epochs', type=int, default=20, help='Maximum number of epochs')

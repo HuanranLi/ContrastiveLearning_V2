@@ -99,7 +99,7 @@ class SimCLRModel(pl.LightningModule):
         z0 = self.forward(x0)
         z1 = self.forward(x1)
         loss = self.criterion(z0, z1)
-        self.log("eval_loss", loss, batch_size=self.batch_size)
+        self.log("val_loss", loss, batch_size=self.batch_size)
 
         # KNN
         batch_features = torch.cat([z0, z1], dim=0)
