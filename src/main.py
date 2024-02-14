@@ -8,15 +8,17 @@ from lightning.pytorch.loggers import MLFlowLogger
 import mlflow
 
 def main(args):
+    # Logging the hyperparams
     mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = f'run_{args.run_index}', save_dir = '../logs')
     mlf_logger.log_hyperparams(args)
 
+    # Select the Data Augmentation / Transform
     if args.train_transform == 'SimCLR':
         train_transform = SimCLRTransform(input_size=args.input_size)
     else:
-        raise ValueError(f'Dataset {args.train_transform} not implemented.')
+        raise ValueError(f'Data Transform {args.train_transform} not implemented.')
 
-
+    # Select the dataset
     if args.dataset == 'CIFAR10':
         CIFAR10_train = torchvision.datasets.CIFAR10(
             root='../datasets', train=True, download=True
@@ -24,25 +26,34 @@ def main(args):
         CIFAR10_test = torchvision.datasets.CIFAR10(
             root='../datasets', train=False, download=True
         )
+        num_classes = 10
         data_module = CIFAR10DataModule(args.input_size,
                                         args.batch_size,
                                         args.num_workers,
                                         train_transform,
                                         CIFAR10_train,
                                         CIFAR10_test)
+
     else:
         raise ValueError(f'Dataset {args.dataset} not implemented.')
 
+    # Select the model
     if args.model == 'SimCLR':
-        model = SimCLRModel(max_epochs=args.max_epochs)
+        model = SimCLRModel(max_epochs=args.max_epochs,
+                            batch_size=args.batch_size,
+                            feature_dim = 128,
+                            feature_bank_size = args.batch_size * 10,
+                            num_classes = num_classes)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
+    # Training
     trainer = pl.Trainer(max_epochs=args.max_epochs,
                             devices=args.devices,
                             accelerator=args.accelerator,
                             logger=mlf_logger)
     trainer.fit(model, data_module)
+    trainer.test(ckpt_path='best',datamodule = data_module)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script for CIFAR10 using PyTorch Lightning")
