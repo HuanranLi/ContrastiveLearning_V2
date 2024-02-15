@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 def main(args):
     # Logging the hyperparams
-    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = f'run_{args.run_index}', save_dir = '../logs')
+    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = "SSL", save_dir = '../logs')
     mlf_logger.log_hyperparams(args)
 
     # Select the Data Augmentation / Transform
