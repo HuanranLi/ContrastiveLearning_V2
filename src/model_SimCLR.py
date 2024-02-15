@@ -23,8 +23,8 @@ class SimCLRModel(pl.LightningModule):
         self.feature_dim = feature_dim
         self.feature_bank_size = feature_bank_size
         self.num_classes = num_classes
-        self.knn_k = 50
         self.knn_t = 1
+        self.k_choice = [50, 100, 200]
 
         # Enable printing out sizes of each input/output
         self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
@@ -79,16 +79,17 @@ class SimCLRModel(pl.LightningModule):
         images, labels, _ = batch
         z = self.forward(images)
 
-        # Run kNN prediction for z using the feature bank
-        pred_labels = knn_predict(z, self.feature_bank, self.feature_labels, self.num_classes, self.knn_k, self.knn_t)
+        for k in self.k_choice:
+            # Run kNN prediction for z using the feature bank
+            pred_labels = knn_predict(z, self.feature_bank, self.feature_labels, self.num_classes, k, self.knn_t)
 
-        # Calculate accuracy
-        correct = (pred_labels == labels).sum().item()
-        total = labels.size(0)
-        accuracy = correct / total
+            # Calculate accuracy
+            correct = (pred_labels == labels).sum().item()
+            total = labels.size(0)
+            accuracy = correct / total
 
-        # Log the accuracy
-        self.log("test_accuracy", accuracy, batch_size=self.batch_size)
+            # Log the accuracy
+            self.log(f"test_{k}-NN_accuracy", accuracy, batch_size=self.batch_size)
 
         return {"test_accuracy": accuracy}
 
@@ -104,13 +105,14 @@ class SimCLRModel(pl.LightningModule):
         # KNN
         batch_features = torch.cat([z0, z1], dim=0)
         batch_labels = torch.cat([labels, labels], dim=0)
-        pred_labels = knn_predict(batch_features, self.feature_bank, self.feature_labels, self.num_classes, self.knn_k, self.knn_t)
 
-        # Calculate accuracy
-        correct = (pred_labels == batch_labels).sum().item()
-        total = labels.size(0)
-        accuracy = correct / total
-        self.log(f"eval_{self.knn_k}-NN_accuracy", accuracy, batch_size=self.batch_size)
+        for k in self.k_choice:
+            pred_labels = knn_predict(batch_features, self.feature_bank, self.feature_labels, self.num_classes, k, self.knn_t)
+            # Calculate accuracy
+            correct = (pred_labels == batch_labels).sum().item()
+            total = labels.size(0)
+            accuracy = correct / total
+            self.log(f"eval_{k}-NN_accuracy", accuracy, batch_size=self.batch_size)
 
         return loss
 
