@@ -6,6 +6,7 @@ import torchvision
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import MLFlowLogger
 import mlflow
+import os
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -45,7 +46,7 @@ def main(args):
         model = SimCLRModel(max_epochs=args.max_epochs,
                             batch_size=args.batch_size,
                             feature_dim = args.feature_size,
-                            feature_bank_size = args.batch_size * 100,
+                            feature_bank_size = args.batch_size * 200,
                             num_classes = num_classes)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
@@ -64,6 +65,7 @@ def main(args):
     trainer.test(ckpt_path='best',datamodule = data_module)
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description="Training script for CIFAR10 using PyTorch Lightning")
 
     parser.add_argument('--experiment_name', type=str, default='experiment_name', help='Name of the experiment.')
@@ -79,6 +81,10 @@ if __name__ == "__main__":
     parser.add_argument('--train_transform', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--accelerator', type=str, default='auto', help='Accelerator for PyTorch Lightning Trainer')
 
-    args = parser.parse_args()
 
+
+
+
+
+    args = parser.parse_args()
     main(args)
