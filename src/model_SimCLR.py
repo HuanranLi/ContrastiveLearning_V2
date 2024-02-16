@@ -14,7 +14,7 @@ import lightly.data as data
 from util_KNN import *
 
 class SimCLRModel(pl.LightningModule):
-    def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes):
+    def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes, temperature):
         super().__init__()
 
         # Parameters
@@ -41,7 +41,7 @@ class SimCLRModel(pl.LightningModule):
         # Projection Head
         hidden_dim = resnet.fc.in_features
         self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
-        self.criterion = NTXentLoss()
+        self.criterion = NTXentLoss(temperature=temperature)
 
     def forward(self, x):
         h = self.backbone(x).flatten(start_dim=1)

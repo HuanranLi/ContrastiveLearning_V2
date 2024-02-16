@@ -47,7 +47,8 @@ def main(args):
                             batch_size=args.batch_size,
                             feature_dim = args.feature_size,
                             feature_bank_size = args.batch_size * 150,
-                            num_classes = num_classes)
+                            num_classes = num_classes,
+                            temperature = args.LossTemperature)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
@@ -80,8 +81,8 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--train_transform', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--accelerator', type=str, default='auto', help='Accelerator for PyTorch Lightning Trainer')
-
-
+    parser.add_argument('--LossTemperature', type=float, default=1,
+                        help='The LossTemperature parameter adjusts the influence of a particular loss function component in the overall loss computation. It is a floating-point value. Defaults to 1.')
 
 
 
