@@ -24,7 +24,7 @@ class SimCLRModel(pl.LightningModule):
         self.feature_bank_size = feature_bank_size
         self.num_classes = num_classes
         self.knn_t = 1
-        self.k_choice = [50, 100, 200]
+        self.k_choice = [25, 50, 100, 200]
 
         # Enable printing out sizes of each input/output
         self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
