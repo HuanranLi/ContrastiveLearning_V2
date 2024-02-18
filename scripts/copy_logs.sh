@@ -17,14 +17,14 @@ do
     # Check if file was copied successfully
     if [ -f "$HOME_DIR/$FILE_NAME" ]; then
         echo "Unzipping $FILE_NAME"
-        # tar -xzf "$NEW_FOLDER/$FILE_NAME" -C "$HOME_DIR"
-        tar -xzf "$HOME_DIR/$FILE_NAME"
+        # tar -xzf "$HOME_DIR/$FILE_NAME" -C "$HOME_DIR"
+        tar -Pxzf "$HOME_DIR/$FILE_NAME" -C "$HOME_DIR"
 
         echo "Deleting $FILE_NAME"
-        rm "$NEW_FOLDER/$FILE_NAME"
+        rm "$HOME_DIR/$FILE_NAME"
     else
         echo "Failed to copy $FILE_NAME"
     fi
 done
 
-echo "All files copied, unzipped, and original zips deleted in $NEW_FOLDER"
+echo "All files copied, unzipped, and original zips deleted in $HOME_DIR"

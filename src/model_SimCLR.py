@@ -110,7 +110,7 @@ class SimCLRModel(pl.LightningModule):
             pred_labels = knn_predict(batch_features, self.feature_bank, self.feature_labels, self.num_classes, k, self.knn_t)
             # Calculate accuracy
             correct = (pred_labels == batch_labels).sum().item()
-            total = labels.size(0)
+            total = batch_labels.size(0)
             accuracy = correct / total
             self.log(f"eval_{k}-NN_accuracy", accuracy, batch_size=self.batch_size)
 
