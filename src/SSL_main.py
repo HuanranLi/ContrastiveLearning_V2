@@ -48,7 +48,9 @@ def main(args):
                             feature_dim = args.feature_size,
                             feature_bank_size = args.batch_size * 150,
                             num_classes = num_classes,
-                            temperature = args.LossTemperature)
+                            temperature = args.LossTemperature,
+                            criterion = args.criterion,
+                            learning_rate = args.learning_rate)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
@@ -65,12 +67,15 @@ def main(args):
     trainer.fit(model, data_module)
     trainer.test(ckpt_path='best',datamodule = data_module)
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Training script for CIFAR10 using PyTorch Lightning")
 
-    parser.add_argument('--experiment_name', type=str, default='experiment_name', help='Name of the experiment.')
+    parser.add_argument('--experiment_name', type=str, default='test', help='Name of the experiment.')
     parser.add_argument('--run_index', type=int, default=0, help='Index of the run within the experiment.')
+
+    parser.add_argument('--criterion', type=str, default='InfoNCE', help='criterion of the contrastive model.')
     parser.add_argument('--input_size', type=int, default=128, help='Input size of the images')
     parser.add_argument('--feature_size', type=int, default=128, help='Output size of the encoder')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training')
@@ -81,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--train_transform', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--accelerator', type=str, default='auto', help='Accelerator for PyTorch Lightning Trainer')
+    parser.add_argument('--learning_rate', type=float, default=6e-2, help='Learning Rate')
     parser.add_argument('--LossTemperature', type=float, default=1,
                         help='The LossTemperature parameter adjusts the influence of a particular loss function component in the overall loss computation. It is a floating-point value. Defaults to 1.')
 

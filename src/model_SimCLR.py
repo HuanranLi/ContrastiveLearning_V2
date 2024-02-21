@@ -12,9 +12,10 @@ from lightly.transforms.utils import IMAGENET_NORMALIZE
 import lightly
 import lightly.data as data
 from util_KNN import *
+from Loss_SymNSQ import *
 
 class SimCLRModel(pl.LightningModule):
-    def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes, temperature):
+    def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes, temperature, criterion, learning_rate):
         super().__init__()
 
         # Parameters
@@ -25,6 +26,7 @@ class SimCLRModel(pl.LightningModule):
         self.num_classes = num_classes
         self.knn_t = 1
         self.k_choice = [25, 50, 100, 200]
+        self.lr = learning_rate
 
         # Enable printing out sizes of each input/output
         self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
@@ -41,7 +43,11 @@ class SimCLRModel(pl.LightningModule):
         # Projection Head
         hidden_dim = resnet.fc.in_features
         self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
-        self.criterion = NTXentLoss(temperature=temperature)
+
+        if criterion == 'InfoNCE':
+            self.criterion = NTXentLoss(temperature=temperature)
+        elif criterion == 'SymNSQ':
+            self.criterion = SymNSQ(temperature=temperature)
 
     def forward(self, x):
         h = self.backbone(x).flatten(start_dim=1)
@@ -118,7 +124,7 @@ class SimCLRModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optim = torch.optim.SGD(
-            self.parameters(), lr=6e-2, momentum=0.9, weight_decay=5e-4
+            self.parameters(), lr=self.lr, momentum=0.9, weight_decay=5e-4
         )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, self.max_epochs)
         return [optim], [scheduler]
