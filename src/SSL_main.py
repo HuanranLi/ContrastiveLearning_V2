@@ -13,7 +13,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 def main(args):
     # Logging the hyperparams
-    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = "SSL", save_dir = '../logs')
+    mlf_logger = MLFlowLogger(experiment_name=args.experiment_name, run_name = args.run_name, save_dir = '../logs')
     mlf_logger.log_hyperparams(args)
 
     # Select the Data Augmentation / Transform
@@ -50,7 +50,9 @@ def main(args):
                             num_classes = num_classes,
                             temperature = args.LossTemperature,
                             criterion = args.criterion,
-                            learning_rate = args.learning_rate)
+                            learning_rate = args.learning_rate,
+                            projection_head = args.projection_head,
+                            num_TF_layers = args.num_TF_layers)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
 
@@ -73,9 +75,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training script for CIFAR10 using PyTorch Lightning")
 
     parser.add_argument('--experiment_name', type=str, default='test', help='Name of the experiment.')
+    parser.add_argument('--run_name', type=str, default='SSL', help='Name of the Run.')
     parser.add_argument('--run_index', type=int, default=0, help='Index of the run within the experiment.')
-
+    parser.add_argument('--num_TF_layers', type=int, default=0, help='Number of TransFusion Layers added, Default 0.')
     parser.add_argument('--criterion', type=str, default='InfoNCE', help='criterion of the contrastive model.')
+    parser.add_argument('--projection_head', type=str, default='SimCLR', help='projection_head of the contrastive model.')
     parser.add_argument('--input_size', type=int, default=128, help='Input size of the images')
     parser.add_argument('--feature_size', type=int, default=128, help='Output size of the encoder')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training')

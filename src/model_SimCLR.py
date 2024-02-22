@@ -13,9 +13,21 @@ import lightly
 import lightly.data as data
 from util_KNN import *
 from Loss_SymNSQ import *
+from model_TransFusion import *
 
 class SimCLRModel(pl.LightningModule):
-    def __init__(self, max_epochs, batch_size, feature_dim, feature_bank_size, num_classes, temperature, criterion, learning_rate):
+    def __init__(self,
+                max_epochs,
+                batch_size,
+                feature_dim,
+                feature_bank_size,
+                num_classes,
+                temperature,
+                criterion,
+                learning_rate,
+                projection_head,
+                num_TF_layers = 0):
+
         super().__init__()
 
         # Parameters
@@ -42,7 +54,10 @@ class SimCLRModel(pl.LightningModule):
 
         # Projection Head
         hidden_dim = resnet.fc.in_features
-        self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
+        if projection_head == 'SimCLR':
+            self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
+        elif projection_head == 'TransFusion':
+            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers)
 
         if criterion == 'InfoNCE':
             self.criterion = NTXentLoss(temperature=temperature)

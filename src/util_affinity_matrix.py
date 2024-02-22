@@ -27,20 +27,20 @@ def create_adjacency_matrix(labels):
     return adj_matrix
 
 
-# def normalize_with_diagonal_zero(x, dim = 1, eps = 1e-10):
+def normalize_with_diagonal_zero(x, dim = 1, eps = 1e-10):
+
+    x = x - torch.diag(torch.diagonal(x))
+
+    return (x+eps) / torch.sum(x+eps, dim=dim, keepdim=True)
+
+# def normalize_with_diagonal_zero(x, dim=1, eps=1e-10):
+#     # Zero out the diagonal in-place
+#     x.fill_diagonal_(0)
 #
-#     x = x - torch.diag(torch.diagonal(x))
+#     # Add epsilon and sum over the specified dimension
+#     sum_over_dim = torch.sum(x, dim=dim, keepdim=True) + eps
 #
-#     return (x+eps) / torch.sum(x+eps, dim=dim, keepdim=True)
-
-def normalize_with_diagonal_zero(x, dim=1, eps=1e-10):
-    # Zero out the diagonal in-place
-    x.fill_diagonal_(0)
-
-    # Add epsilon and sum over the specified dimension
-    sum_over_dim = torch.sum(x, dim=dim, keepdim=True) + eps
-
-    # Normalize in-place
-    x.div_(sum_over_dim)
-
-    return x
+#     # Normalize in-place
+#     x.div_(sum_over_dim)
+#
+#     return x
