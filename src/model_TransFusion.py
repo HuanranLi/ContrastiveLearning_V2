@@ -64,7 +64,23 @@ class TransFusionProjectionHead(SimCLRProjectionHead):
     ):
         super().__init__(input_dim, hidden_dim, output_dim)
         print('TransFusion Init with number of layers: ', num_TF_layers)
-        
+
         TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(input_dim), AttentionBlock(input_dim, input_dim)]]
+
+        self.layers = nn.Sequential(*TF_layers, *self.layers)
+
+class SimCLR_TFsize_ProjectionHead(SimCLRProjectionHead):
+
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        num_TF_layers: int
+    ):
+        super().__init__(input_dim, hidden_dim, output_dim)
+        print('Equivelent TransFusion Init with number of layers: ', num_TF_layers)
+
+        TF_layers = [layer for _ in range(num_TF_layers*3) for layer in [nn.LayerNorm(input_dim), nn.Linear(input_size, input_size)]]
 
         self.layers = nn.Sequential(*TF_layers, *self.layers)

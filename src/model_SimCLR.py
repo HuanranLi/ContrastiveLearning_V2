@@ -60,6 +60,10 @@ class SimCLRModel(pl.LightningModule):
             self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
         elif projection_head == 'TransFusion':
             self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers)
+        elif projection_head == 'SimCLR_TFsize':
+            self.projection_head = SimCLR_TFsize_ProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers)
+        else:
+            raise ValueError('projection_head {projection_head} not implemented!')
 
         if criterion == 'InfoNCE':
             self.criterion = NTXentLoss(temperature=temperature)
