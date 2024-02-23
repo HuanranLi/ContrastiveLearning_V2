@@ -26,6 +26,7 @@ class SimCLRModel(pl.LightningModule):
                 criterion,
                 learning_rate,
                 projection_head,
+                optimizer,
                 num_TF_layers = 0):
 
         super().__init__()
@@ -39,6 +40,7 @@ class SimCLRModel(pl.LightningModule):
         self.knn_t = 1
         self.k_choice = [25, 50, 100, 200]
         self.lr = learning_rate
+        self.optimizer = optimizer
 
         # Enable printing out sizes of each input/output
         self.example_input_array = torch.Tensor(self.batch_size, 3, 28, 28)
@@ -138,8 +140,15 @@ class SimCLRModel(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optim = torch.optim.SGD(
-            self.parameters(), lr=self.lr, momentum=0.9, weight_decay=5e-4
-        )
+        if self.optimizer == 'SGD':
+            optim = torch.optim.SGD(
+                self.parameters(), lr=self.lr, momentum=0.9, weight_decay=5e-4
+            )
+        elif self.optimizer == 'Adam':
+            optim = torch.optim.Adam(
+                self.parameters(), lr=self.lr, weight_decay=5e-4
+            )
+        else:
+            raise ValueError('Optimizer {self.optimizer} not implemented.')
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, self.max_epochs)
         return [optim], [scheduler]

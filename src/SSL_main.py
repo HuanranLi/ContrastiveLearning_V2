@@ -52,6 +52,7 @@ def main(args):
                             criterion = args.criterion,
                             learning_rate = args.learning_rate,
                             projection_head = args.projection_head,
+                            optimizer = args.optimizer,
                             num_TF_layers = args.num_TF_layers)
     else:
         raise ValueError(f'Model {args.model} not implemented.')
@@ -77,22 +78,27 @@ if __name__ == "__main__":
     parser.add_argument('--experiment_name', type=str, default='test', help='Name of the experiment.')
     parser.add_argument('--run_name', type=str, default='SSL', help='Name of the Run.')
     parser.add_argument('--run_index', type=int, default=0, help='Index of the run within the experiment.')
+
+    parser.add_argument('--model', type=str, default='SimCLR',help='Model to use')
+    parser.add_argument('--projection_head', type=str, default='SimCLR', help='projection_head of the contrastive model. Default SimCLR.')
     parser.add_argument('--num_TF_layers', type=int, default=0, help='Number of TransFusion Layers added, Default 0.')
-    parser.add_argument('--criterion', type=str, default='InfoNCE', help='criterion of the contrastive model.')
-    parser.add_argument('--projection_head', type=str, default='SimCLR', help='projection_head of the contrastive model.')
+    parser.add_argument('--criterion', type=str, default='InfoNCE', help='criterion of the contrastive model. Default InfoNCE')
+    parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer of the contrastive model. Default SGD.')
+    parser.add_argument('--max_epochs', type=int, default=20, help='Maximum number of epochs')
+
+    parser.add_argument('--dataset', type=str, default='CIFAR10', help='Dataset to use')
     parser.add_argument('--input_size', type=int, default=128, help='Input size of the images')
     parser.add_argument('--feature_size', type=int, default=128, help='Output size of the encoder')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training')
-    parser.add_argument('--num_workers', type=int, default=8, help='Number of workers for data loading')
-    parser.add_argument('--max_epochs', type=int, default=20, help='Maximum number of epochs')
-    parser.add_argument('--devices', type=int, default=1, help='Number of devices for training')
-    parser.add_argument('--dataset', type=str, default='CIFAR10', help='Dataset to use')
-    parser.add_argument('--model', type=str, default='SimCLR',help='Model to use')
     parser.add_argument('--train_transform', type=str, default='SimCLR',help='Model to use')
-    parser.add_argument('--accelerator', type=str, default='auto', help='Accelerator for PyTorch Lightning Trainer')
+
     parser.add_argument('--learning_rate', type=float, default=6e-2, help='Learning Rate')
     parser.add_argument('--LossTemperature', type=float, default=1,
                         help='The LossTemperature parameter adjusts the influence of a particular loss function component in the overall loss computation. It is a floating-point value. Defaults to 1.')
+
+    parser.add_argument('--num_workers', type=int, default=8, help='Number of workers for data loading')
+    parser.add_argument('--devices', type=int, default=1, help='Number of devices for training')
+    parser.add_argument('--accelerator', type=str, default='auto', help='Accelerator for PyTorch Lightning Trainer')
 
 
 
