@@ -73,6 +73,13 @@ class TransFusionProjectionHead(SimCLRProjectionHead):
             super().__init__(input_dim, hidden_dim, output_dim)
             TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(output_dim), AttentionBlock(output_dim, output_dim)]]
             self.layers = nn.Sequential(*self.layers, *TF_layers)
+        elif style == 'inserted_FNN':
+            super().__init__(input_dim, hidden_dim, output_dim)
+            TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(output_dim),
+                                                                            AttentionBlock(output_dim, output_dim),
+                                                                            nn.Linear(output_dim, output_dim),
+                                                                            nn.ReLU()]]
+            self.layers = nn.Sequential(*self.layers , *TF_layers)
         else:
             raise ValueError('style for TF not implemented: ', style)
 

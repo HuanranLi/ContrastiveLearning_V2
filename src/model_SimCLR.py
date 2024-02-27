@@ -59,9 +59,12 @@ class SimCLRModel(pl.LightningModule):
         if projection_head == 'SimCLR':
             self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
         elif projection_head == 'TransFusion':
-            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers)
-        elif projection_head == 'TransFusion-after_FNN':
-            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers, style = 'after_FNN')
+            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim,
+                                                                num_TF_layers = num_TF_layers)
+        elif projection_head.startswith('TransFusion-'):
+            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim,
+                                                                num_TF_layers = num_TF_layers,
+                                                                style = projection_head[len('TransFusion-'):])
         elif projection_head == 'SimCLR_TFsize':
             self.projection_head = SimCLR_TFsize_ProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers)
         else:
