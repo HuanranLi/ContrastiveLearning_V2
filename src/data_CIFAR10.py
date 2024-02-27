@@ -39,6 +39,12 @@ class CIFAR10DataModule(pl.LightningDataModule):
         self.cifar10_train_torch = torch_train_dataset
         self.cifar10_test_torch = torch_test_dataset
 
+    def get_feature_bank_size(self, batch_size):
+        # Train-Val Split
+        train_size = int((1 - self.val_split) * len(self.cifar10_train_torch))
+
+        return train_size // batch_size * batch_size
+
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
             full_train_dataset = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.train_transform)
@@ -56,6 +62,17 @@ class CIFAR10DataModule(pl.LightningDataModule):
             self.cifar10_train,
             batch_size=self.batch_size,
             shuffle=True,
+            drop_last=True,
+            num_workers=self.num_workers,
+            persistent_workers=True
+        )
+
+    def vanilla_training_loader(self):
+        vanilla_train_loader = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.test_transform)
+        return DataLoader(
+            vanilla_train_loader,
+            batch_size=self.batch_size,
+            shuffle=False,
             drop_last=True,
             num_workers=self.num_workers,
             persistent_workers=True

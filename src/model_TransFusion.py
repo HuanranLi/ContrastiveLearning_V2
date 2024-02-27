@@ -60,14 +60,21 @@ class TransFusionProjectionHead(SimCLRProjectionHead):
         input_dim: int,
         hidden_dim: int,
         output_dim: int,
-        num_TF_layers: int
+        num_TF_layers: int,
+        style = 'before_FNN',
     ):
-        super().__init__(input_dim, hidden_dim, output_dim)
         print('TransFusion Init with number of layers: ', num_TF_layers)
 
-        TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(input_dim), AttentionBlock(input_dim, input_dim)]]
-
-        self.layers = nn.Sequential(*TF_layers, *self.layers)
+        if style == 'before_FNN':
+            super().__init__(input_dim, hidden_dim, output_dim)
+            TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(input_dim), AttentionBlock(input_dim, input_dim)]]
+            self.layers = nn.Sequential(*TF_layers, *self.layers)
+        elif style == 'after_FNN':
+            super().__init__(input_dim, hidden_dim, output_dim)
+            TF_layers = [layer for _ in range(num_TF_layers) for layer in [nn.LayerNorm(output_dim), AttentionBlock(output_dim, output_dim)]]
+            self.layers = nn.Sequential(*self.layers, *TF_layers)
+        else:
+            raise ValueError('style for TF not implemented: ', style)
 
 class SimCLR_TFsize_ProjectionHead(SimCLRProjectionHead):
 

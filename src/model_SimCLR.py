@@ -60,10 +60,12 @@ class SimCLRModel(pl.LightningModule):
             self.projection_head = SimCLRProjectionHead(hidden_dim, hidden_dim, feature_dim)
         elif projection_head == 'TransFusion':
             self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers)
+        elif projection_head == 'TransFusion-after_FNN':
+            self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers = num_TF_layers, style = 'after_FNN')
         elif projection_head == 'SimCLR_TFsize':
             self.projection_head = SimCLR_TFsize_ProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers)
         else:
-            raise ValueError('projection_head {projection_head} not implemented!')
+            raise ValueError(f'projection_head {projection_head} not implemented!')
 
         if criterion == 'InfoNCE':
             self.criterion = NTXentLoss(temperature=temperature)
@@ -83,11 +85,7 @@ class SimCLRModel(pl.LightningModule):
         loss = self.criterion(z0, z1)
         self.log("train_loss", loss, batch_size=self.batch_size)
 
-        # Update feature bank and labels
-        batch_features = torch.cat([z0, z1], dim=0)
-        batch_labels = torch.cat([labels, labels], dim=0)
-        self._update_feature_bank(batch_features, batch_labels)
-
+        self._update_feature_bank(z0, labels)
         return loss
 
     def _update_feature_bank(self, features, labels):
@@ -102,21 +100,58 @@ class SimCLRModel(pl.LightningModule):
         # Move the pointer
         self.feature_bank_ptr = (self.feature_bank_ptr + batch_size) % self.feature_bank_size
 
+
+    def on_test_start(self):
+        # Assuming vanilla_training_loader is a DataLoader in the datamodule
+        vanilla_training_loader = self.trainer.datamodule.vanilla_training_loader()
+
+        for batch in vanilla_training_loader:
+
+            images, labels, _ = batch
+
+            # Move images and labels to the device
+            images = images.to(self.device)
+            labels = labels.to(self.device)
+
+            z = self.forward(images)
+
+            # Update feature bank with embeddings and labels
+            self._update_feature_bank(z, labels)
+
+
     def test_step(self, batch, batch_idx):
         images, labels, _ = batch
+
         z = self.forward(images)
 
         for k in self.k_choice:
-            # Run kNN prediction for z using the feature bank
-            pred_labels = knn_predict(z, self.feature_bank, self.feature_labels, self.num_classes, k, self.knn_t)
+            # # Run kNN prediction for z using the feature bank
+            # Seed for reproducibility
+            random_seed = 123
+            torch.manual_seed(random_seed)
 
-            # Calculate accuracy
+            # Original test with 100% of the feature bank
+            pred_labels = knn_predict(z, self.feature_bank, self.feature_labels, self.num_classes, k, self.knn_t)
             correct = (pred_labels == labels).sum().item()
             total = labels.size(0)
             accuracy = correct / total
+            self.log(f"test_{k}-NN_accuracy_100", accuracy, batch_size=self.batch_size)
 
-            # Log the accuracy
-            self.log(f"test_{k}-NN_accuracy", accuracy, batch_size=self.batch_size)
+            # Test with 50% of the feature bank
+            sampled_feature_bank, sampled_feature_labels = sample_feature_bank(self.feature_bank, self.feature_labels, 0.50)
+            pred_labels = knn_predict(z, sampled_feature_bank, sampled_feature_labels, self.num_classes, k, self.knn_t)
+            correct = (pred_labels == labels).sum().item()
+            total = labels.size(0)
+            accuracy = correct / total
+            self.log(f"test_{k}-NN_accuracy_50", accuracy, batch_size=self.batch_size)
+
+            # Test with 10% of the feature bank
+            sampled_feature_bank, sampled_feature_labels = sample_feature_bank(self.feature_bank, self.feature_labels, 0.10)
+            pred_labels = knn_predict(z, sampled_feature_bank, sampled_feature_labels, self.num_classes, k, self.knn_t)
+            correct = (pred_labels == labels).sum().item()
+            total = labels.size(0)
+            accuracy = correct / total
+            self.log(f"test_{k}-NN_accuracy_10", accuracy, batch_size=self.batch_size)
 
         return {"test_accuracy": accuracy}
 
@@ -156,3 +191,9 @@ class SimCLRModel(pl.LightningModule):
             raise ValueError('Optimizer {self.optimizer} not implemented.')
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, self.max_epochs)
         return [optim], [scheduler]
+
+# Function to sample a percentage of the feature bank
+def sample_feature_bank(feature_bank, feature_labels, percentage):
+    num_samples = int(len(feature_bank) * percentage)
+    indices = torch.randperm(len(feature_bank))[:num_samples]
+    return feature_bank[indices], feature_labels[indices]

@@ -30,6 +30,7 @@ def main(args):
         CIFAR10_test = torchvision.datasets.CIFAR10(
             root='../datasets', train=False, download=True
         )
+
         num_classes = 10
         data_module = CIFAR10DataModule(args.input_size,
                                         args.batch_size,
@@ -37,6 +38,10 @@ def main(args):
                                         train_transform,
                                         CIFAR10_train,
                                         CIFAR10_test)
+
+        feature_bank_size = data_module.get_feature_bank_size(args.batch_size)
+        mlf_logger.log_hyperparams({'feature_bank_size': feature_bank_size})
+        print(f'feature_bank_size:', feature_bank_size)
 
     else:
         raise ValueError(f'Dataset {args.dataset} not implemented.')
@@ -46,7 +51,7 @@ def main(args):
         model = SimCLRModel(max_epochs=args.max_epochs,
                             batch_size=args.batch_size,
                             feature_dim = args.feature_size,
-                            feature_bank_size = args.batch_size * 150,
+                            feature_bank_size = feature_bank_size,
                             num_classes = num_classes,
                             temperature = args.LossTemperature,
                             criterion = args.criterion,
