@@ -30,6 +30,7 @@ class SimCLRModel(pl.LightningModule):
                 num_TF_layers = 0):
 
         super().__init__()
+        self.save_hyperparameters()
 
         # Parameters
         self.max_epochs = max_epochs
@@ -65,6 +66,9 @@ class SimCLRModel(pl.LightningModule):
             self.projection_head = TransFusionProjectionHead(hidden_dim, hidden_dim, feature_dim,
                                                                 num_TF_layers = num_TF_layers,
                                                                 style = projection_head[len('TransFusion-'):])
+        elif projection_head == 'TransFusionV2':
+            self.projection_head = TransFusionV2ProjectionHead(hidden_dim, hidden_dim, feature_dim,
+                                                                num_TF_layers = num_TF_layers)
         elif projection_head == 'SimCLR_TFsize':
             self.projection_head = SimCLR_TFsize_ProjectionHead(hidden_dim, hidden_dim, feature_dim, num_TF_layers)
         else:

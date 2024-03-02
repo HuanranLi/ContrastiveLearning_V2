@@ -63,6 +63,7 @@ class TransFusionProjectionHead(SimCLRProjectionHead):
         num_TF_layers: int,
         style = 'before_FNN',
     ):
+        self.style = style
         print('TransFusion Init with number of layers: ', num_TF_layers)
 
         if style == 'before_FNN':
@@ -83,6 +84,8 @@ class TransFusionProjectionHead(SimCLRProjectionHead):
         else:
             raise ValueError('style for TF not implemented: ', style)
 
+
+
 class SimCLR_TFsize_ProjectionHead(SimCLRProjectionHead):
 
     def __init__(
@@ -98,3 +101,31 @@ class SimCLR_TFsize_ProjectionHead(SimCLRProjectionHead):
         TF_layers = [layer for _ in range(num_TF_layers*3) for layer in [nn.LayerNorm(input_dim), nn.Linear(input_size, input_size)]]
 
         self.layers = nn.Sequential(*TF_layers, *self.layers)
+
+
+
+class TransFusionV2ProjectionHead(SimCLRProjectionHead):
+
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        num_TF_layers: int
+    ):
+        self.num_TF_layers = num_TF_layers
+        print('TransFusion Init with number of layers: ', num_TF_layers)
+
+        super().__init__(input_dim, hidden_dim, output_dim)
+        self.TF_layers = nn.ModuleList([nn.MultiheadAttention(embed_dim=output_dim, num_heads=1) for _ in range(num_TF_layers)])
+        self.layer_norm = nn.ModuleList([nn.LayerNorm(output_dim) for _ in range(num_TF_layers)])
+
+    def forward(self, x):
+        x = self.layers(x)
+
+        for i in range(self.num_TF_layers):
+            x = self.layer_norm[i](x)
+            x, _ = self.TF_layers[i](x, x, x)
+
+
+        return x
