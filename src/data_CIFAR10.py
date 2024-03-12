@@ -12,15 +12,18 @@ from lightly.transforms.utils import IMAGENET_NORMALIZE
 import lightly
 import lightly.data as data
 
+from lightning.pytorch.utilities import CombinedLoader
+
 # CIFAR10 Data Module
 class CIFAR10DataModule(pl.LightningDataModule):
-    def __init__(self, input_size, batch_size, num_workers, train_transform, torch_train_dataset, torch_test_dataset, val_split=0.2):
+    def __init__(self, input_size, batch_size, num_workers, train_transform, torch_train_dataset, torch_test_dataset, val_split=0.2, OAR_ratio = 0.0):
         super().__init__()
         # parameter
         self.input_size = input_size
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_split = val_split
+        self.OAR_ratio = OAR_ratio
 
         # Data Transform
         self.train_transform = train_transform
@@ -45,6 +48,13 @@ class CIFAR10DataModule(pl.LightningDataModule):
 
         return train_size // batch_size * batch_size
 
+
+    def get_OAR_feature_bank_size(self, batch_size):
+        # Train-Val Split
+        train_size = int(self.OAR_ratio * len(self.cifar10_train_torch))
+
+        return train_size // batch_size * batch_size
+
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
             full_train_dataset = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.train_transform)
@@ -54,11 +64,27 @@ class CIFAR10DataModule(pl.LightningDataModule):
             val_size = len(full_train_dataset) - train_size
             self.cifar10_train, self.cifar10_val = random_split(full_train_dataset, [train_size, val_size])
 
+            if self.OAR_ratio > 0:
+                OAR_size = int(self.OAR_ratio * len(full_train_dataset))
+                left_size = len(full_train_dataset) - OAR_size
+                torch.manual_seed(42)
+                self.OAR_train, _ = random_split(full_train_dataset, [OAR_size, left_size])
+
         if stage == 'test' or stage is None:
             self.cifar10_test = data.LightlyDataset.from_torch_dataset(self.cifar10_test_torch, transform = self.test_transform)
+            self.vanilla_train_loader = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.test_transform)
+
+            if self.OAR_ratio > 0:
+                OAR_vanilla_train_loader = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.test_transform)
+                OAR_size = int(self.OAR_ratio * len(OAR_vanilla_train_loader))
+                left_size = len(OAR_vanilla_train_loader) - OAR_size
+                torch.manual_seed(42)
+                self.OAR_vanilla_trainset, _ = random_split(OAR_vanilla_train_loader, [OAR_size, left_size])
+
+
 
     def train_dataloader(self):
-        return DataLoader(
+        SSL_loader = DataLoader(
             self.cifar10_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -67,10 +93,37 @@ class CIFAR10DataModule(pl.LightningDataModule):
             persistent_workers=True
         )
 
+        if self.OAR_ratio == 0:
+            return SSL_loader
+        else:
+            OAR_loader = self.OAR_training_loader()
+            combined_loader = CombinedLoader({'SSL': SSL_loader, 'OAR': OAR_loader}, mode="max_size_cycle")
+            print('Combined Loader!')
+            return combined_loader
+
     def vanilla_training_loader(self):
-        vanilla_train_loader = data.LightlyDataset.from_torch_dataset(self.cifar10_train_torch, transform = self.test_transform)
         return DataLoader(
-            vanilla_train_loader,
+            self.vanilla_train_loader,
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=True,
+            num_workers=self.num_workers,
+            persistent_workers=True
+        )
+
+    def OAR_vanilla_training_loader(self):
+        return DataLoader(
+            self.OAR_vanilla_trainset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=True,
+            num_workers=self.num_workers,
+            persistent_workers=True
+        )
+
+    def OAR_training_loader(self):
+        return DataLoader(
+            self.OAR_train,
             batch_size=self.batch_size,
             shuffle=False,
             drop_last=True,
